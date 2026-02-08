@@ -1,0 +1,5 @@
+Combination: Combination_1
+Records: 10000
+Source Column: County
+Unique Values: 58
+Total Records: 10000

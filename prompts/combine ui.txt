@@ -1,0 +1,10 @@
+import ttkbootstrap as tb
+from main.main02 import ExtendedApp   # Use the extended app, not base app
+
+def run_app():
+    root = tb.Window(themename="cosmo")
+    app = ExtendedApp(root)
+    root.mainloop()
+
+if __name__ == "__main__":
+    run_app()

@@ -1,0 +1,510 @@
+# # pipeline/vacant_lot_pipeline/3_phone_number_vacant_lot.py
+# import pandas as pd
+# import os
+# import re
+
+# # -------------------------------
+# # Helpers
+# # -------------------------------
+# def to_pascal_case(text):
+#     if pd.isna(text):
+#         return text
+#     return ' '.join(word.capitalize() for word in str(text).split())
+
+# def normalize_address(addr):
+#     if pd.isna(addr): return ""
+#     addr = str(addr).strip().lower()
+#     addr = re.sub(r"\s+", " ", addr)
+#     return addr
+
+# def ensure_folder(folder):
+#     if not os.path.exists(folder):
+#         os.makedirs(folder, exist_ok=True)
+
+# # -------------------------------
+# # STEP 03.5: Remove Type columns from CC Ready files
+# # -------------------------------
+# def remove_type_columns_from_cc_ready(file_path):
+#     """
+#     Remove Type1–Type6 columns from CC Ready files but KEEP Email
+#     """
+#     try:
+#         df = pd.read_excel(file_path)
+
+#         # Remove Type columns
+#         columns_to_remove = ['Type1', 'Type2', 'Type3', 'Type4', 'Type5', 'Type6']
+#         df = df.drop(columns=[col for col in columns_to_remove if col in df.columns], errors='ignore')
+
+#         # Save back
+#         writer = pd.ExcelWriter(file_path, engine='xlsxwriter')
+#         df.to_excel(writer, sheet_name='Sheet1', index=False)
+
+#         workbook = writer.book
+#         worksheet = writer.sheets['Sheet1']
+#         no_border_format = workbook.add_format({'border': 0})
+
+#         for col_num, value in enumerate(df.columns.values):
+#             worksheet.write(0, col_num, value, no_border_format)
+
+#         writer.close()
+#         print(f"✅ Removed Type columns from: {file_path}")
+#         return df
+
+#     except Exception as e:
+#         print(f"❌ Error processing CC Ready file: {str(e)}")
+#         return None
+
+# # -------------------------------
+# # STEP 01
+# # -------------------------------
+# def step_01_clean_and_standardize(df, list_name):
+#     cleaned = df.rename(columns={
+#         'first_name': 'First Name',
+#         'last_name': 'Last Name',
+#         'associated_property_address_line_1': 'Property Address',
+#         'associated_property_address_city': 'Property City',
+#         'associated_property_address_state': 'Property State',
+#         'associated_property_address_zipcode': 'Property Zip',
+#         'primary_mailing_address': 'Mailing Address',
+#         'primary_mailing_city': 'Mailing City',
+#         'primary_mailing_state': 'Mailing State',
+#         'primary_mailing_zip': 'Mailing Zip',
+#         'phone_1': 'Phone1',
+#         'phone_2': 'Phone2',
+#         'phone_3': 'Phone3',
+#         'phone_4': 'Phone4',
+#         'phone_5': 'Phone5',
+#         'phone_6': 'Phone6',
+#         'phone_1_type': 'Type1',
+#         'phone_2_type': 'Type2',
+#         'phone_3_type': 'Type3',
+#         'phone_4_type': 'Type4',
+#         'phone_5_type': 'Type5',
+#         'phone_6_type': 'Type6',
+#         'email': 'Email'
+#     })
+
+#     if 'Mailing Address' in cleaned.columns:
+#         cleaned['Mailing Address'] = cleaned['Mailing Address'].apply(to_pascal_case)
+#     if 'Mailing City' in cleaned.columns:
+#         cleaned['Mailing City'] = cleaned['Mailing City'].apply(to_pascal_case)
+
+#     columns_to_keep = [
+#         'First Name', 'Last Name',
+#         'Property Address', 'Property City', 'Property State', 'Property Zip',
+#         'Mailing Address', 'Mailing City', 'Mailing State', 'Mailing Zip', 'Parcel Id',
+#         'Phone1', 'Type1', 'Phone2', 'Type2', 'Phone3', 'Type3',
+#         'Phone4', 'Type4', 'Phone5', 'Type5', 'Phone6', 'Type6',
+#         'Email',
+#     ]
+
+#     cleaned = cleaned[[col for col in columns_to_keep if col in cleaned.columns]]
+#     cleaned['List'] = list_name
+#     return cleaned
+
+# # -------------------------------
+# # STEP 02
+# # -------------------------------
+# def step_02_remove_phones(df):
+#     return df.drop(columns=[
+#         'Phone1','Type1','Phone2','Type2','Phone3','Type3',
+#         'Phone4','Type4','Phone5','Type5','Phone6','Type6','Email'
+#     ], errors='ignore')
+
+# # -------------------------------
+# # STEP 03
+# # -------------------------------
+# def step_03_dedupe_and_cleanup(df, list_name, output_folder=None):
+#     df = df.drop_duplicates()
+#     if 'Property Address' in df.columns:
+#         df['normalized_address'] = df['Property Address'].apply(normalize_address)
+#         df = df.drop_duplicates(subset=['normalized_address'])
+#         df = df.drop(columns=['normalized_address'], errors='ignore')
+
+#     phone_cols = [f'Phone{i}' for i in range(1,7) if f'Phone{i}' in df.columns]
+#     if phone_cols:
+#         mask_no_phones = df[phone_cols].isna().all(axis=1)
+#     else:
+#         mask_no_phones = pd.Series([True]*len(df), index=df.index)
+
+#     df_no_hit = df[mask_no_phones].copy()
+
+#     if not df_no_hit.empty and output_folder:
+#         no_hit_folder = os.path.join(output_folder, "No Hit")
+#         ensure_folder(no_hit_folder)
+#         no_hit_path = os.path.join(no_hit_folder, f"{list_name}.xlsx")
+
+#         writer = pd.ExcelWriter(no_hit_path, engine='xlsxwriter')
+#         df_no_hit.to_excel(writer, sheet_name='Sheet1', index=False)
+
+#         workbook = writer.book
+#         worksheet = writer.sheets['Sheet1']
+#         no_border_format = workbook.add_format({'border': 0})
+
+#         for col_num, value in enumerate(df_no_hit.columns.values):
+#             worksheet.write(0, col_num, value, no_border_format)
+
+#         writer.close()
+#         print(f"📂 No Hit file created at: {no_hit_path}")
+
+#     df = df[~mask_no_phones]
+#     df['List'] = list_name
+#     return df
+
+# # -------------------------------
+# # STEP 04
+# # -------------------------------
+# def step_04_process_phones(df):
+#     phone_cols = [f'Phone{i}' for i in range(1,7) if f'Phone{i}' in df.columns]
+#     if phone_cols:
+#         df = df[df[phone_cols].notna().any(axis=1)].copy()
+
+#     # Remove landlines
+#     for i in range(1, 7):
+#         phone_col = f'Phone{i}'
+#         type_col = f'Type{i}'
+#         if type_col in df.columns:
+#             df.loc[df[type_col].astype(str).str.lower() == 'landline', phone_col] = None
+
+#     # Core address columns (without Email)
+#     address_columns = [
+#         'First Name', 'Last Name',
+#         'Property Address', 'Property City', 'Property State', 'Property Zip',
+#         'Mailing Address', 'Mailing City', 'Mailing State', 'Mailing Zip', 'Parcel Id'
+#     ]
+
+#     # Clean property zip
+#     if 'Property Zip' in df.columns:
+#         df['Property Zip'] = df['Property Zip'].astype(str).str.split('-').str[0]
+#         df['Property Zip'] = pd.to_numeric(df['Property Zip'], errors='coerce').fillna(0).astype(int)
+
+#     # Separate rows where first 3 phones are blank → shift 4–6
+#     mask_blank_first3 = True
+#     phone1_present = 'Phone1' in df.columns
+#     phone2_present = 'Phone2' in df.columns
+#     phone3_present = 'Phone3' in df.columns
+#     cols_first3 = [c for c in ['Phone1','Phone2','Phone3'] if c in df.columns]
+#     if cols_first3:
+#         mask_blank_first3 = df[cols_first3].isna().all(axis=1)
+#     else:
+#         mask_blank_first3 = pd.Series([False]*len(df), index=df.index)
+
+#     df_4_2 = df[mask_blank_first3].copy()
+
+#     if not df_4_2.empty:
+#         df_4_2_processed = df_4_2[address_columns + ['Email', 'Phone4', 'Phone5', 'Phone6', 'List']].copy()
+#         df_4_2_processed.rename(columns={'Phone4': 'Phone1', 'Phone5': 'Phone2', 'Phone6': 'Phone3'}, inplace=True)
+#         df_4_2 = df_4_2_processed[address_columns + ['Phone1', 'Phone2', 'Phone3', 'Email', 'List']]
+#     else:
+#         df_4_2 = pd.DataFrame(columns=address_columns + ['Phone1', 'Phone2', 'Phone3', 'Email', 'List'])
+
+#     # Keep rows with first 3 phones
+#     # ensure Phone4-6 present as None
+#     for col in ['Phone4','Phone5','Phone6']:
+#         if col not in df.columns:
+#             df[col] = None
+
+#     df_4_1 = df[~mask_blank_first3].copy()
+#     df_4_1 = df_4_1[address_columns + ['Phone1', 'Phone2', 'Phone3', 'Email', 'List']].copy()
+
+#     # Combine and drop empties
+#     df_combined = pd.concat([df_4_1, df_4_2], ignore_index=True)
+#     phone_cols_first3 = [c for c in ['Phone1','Phone2','Phone3'] if c in df_combined.columns]
+#     if phone_cols_first3:
+#         df_combined = df_combined[df_combined[phone_cols_first3].notna().any(axis=1)]
+
+#     return df_combined
+
+# # -------------------------------
+# # STEP 05
+# # -------------------------------
+# def step_05_reshape(df):
+#     def extract_numeric_phone(phone):
+#         return phone  # keep as-is
+
+#     phone_cols = [col for col in df.columns if col.lower().startswith("phone")]
+
+#     output_rows = []
+#     for _, row in df.iterrows():
+#         record = {
+#             "First Name": row.get("First Name", ""),
+#             "Last Name": row.get("Last Name", ""),
+#             "Property Address": row.get("Property Address", ""),
+#             "Property City": row.get("Property City", ""),
+#             "Property State": row.get("Property State", ""),
+#             "Property Zip": row.get("Property Zip", ""),
+#             "Mailing Address": row.get("Mailing Address", ""),
+#             "Mailing City": row.get("Mailing City", ""),
+#             "Mailing State": row.get("Mailing State", ""),
+#             "Mailing Zip": row.get("Mailing Zip", ""),
+#             "Parcel Id": row.get("Parcel Id", ""),
+#             "Email": row.get("Email", ""),
+#             "List": row.get("List", "")
+#         }
+
+#         # collect valid phones
+#         phone_numbers = []
+#         for phone_col in phone_cols:
+#             val = row.get(phone_col, None)
+#             if pd.notna(val) and str(val).strip() not in ["", "nan", "none", "null", "0"]:
+#                 phone_numbers.append(extract_numeric_phone(val))
+
+#         if not phone_numbers:
+#             continue
+
+#         for phone in phone_numbers:
+#             rec_copy = record.copy()
+#             # Force final order: Phone → Email → List
+#             rec_copy = {
+#                 **{k: rec_copy[k] for k in rec_copy if k not in ["Email", "List"]},
+#                 "Phone": phone,
+#                 "Email": rec_copy["Email"],
+#                 "List": rec_copy["List"]
+#             }
+#             output_rows.append(rec_copy)
+
+#     return pd.DataFrame(output_rows)
+
+# # -------------------------------
+# # Save helper
+# # -------------------------------
+# def save_to_folder(df, folder, list_name, suffix=""):
+#     ensure_folder(folder)
+#     filepath = os.path.join(folder, f"{list_name}{suffix}.xlsx")
+#     df = df.fillna('')
+
+#     writer = pd.ExcelWriter(filepath, engine='xlsxwriter')
+#     df.to_excel(writer, sheet_name='Sheet1', index=False)
+
+#     workbook = writer.book
+#     worksheet = writer.sheets['Sheet1']
+#     no_border_format = workbook.add_format({'border': 0})
+
+#     for col_num, value in enumerate(df.columns.values):
+#         worksheet.write(0, col_num, value, no_border_format)
+
+#     writer.close()
+#     print(f"✅ Saved: {filepath}")
+#     return filepath
+
+# # -------------------------------
+# # RUN PIPELINE
+# # -------------------------------
+# def run_3_phone_number_vacant_lot_pipeline(input_path, list_name, output_folder, keep_outputs=None):
+#     """
+#     Runs the full vacant-lot 6-phone pipeline for a single input file.
+#     keep_outputs: list of labels to keep. If None => keep everything.
+#     Labels: "SkipTraced", "2BSkip", "CC Ready", "SC Ready", "GHL Ready", "No Hit File"
+#     """
+#     # Create Processed folder
+#     processed_folder = os.path.join(output_folder, "Processed")
+#     ensure_folder(processed_folder)
+    
+#     # Create individual output folder inside Processed
+#     individual_output_folder = os.path.join(processed_folder, list_name)
+#     ensure_folder(individual_output_folder)
+
+#     # Subfolders
+#     subfolders = ["SkipTraced", "2BSkip", "CC Ready", "SC Ready", "GHL Ready", "No Hit"]
+#     for folder in subfolders:
+#         ensure_folder(os.path.join(individual_output_folder, folder))
+
+#     step01_folder = os.path.join(individual_output_folder, "SkipTraced")
+#     filepath_01 = os.path.join(step01_folder, f"{list_name}.xlsx")
+
+#     if os.path.exists(filepath_01):
+#         print(f"Found existing step01 file: {filepath_01}. Loading it instead of reprocessing.")
+#         df_01 = pd.read_excel(filepath_01)
+#     else:
+#         if input_path.endswith('.csv'):
+#             df_raw = pd.read_csv(input_path)
+#         elif input_path.endswith('.xlsx'):
+#             df_raw = pd.read_excel(input_path)
+#         else:
+#             raise ValueError("Unsupported input file type.")
+#         df_01 = step_01_clean_and_standardize(df_raw, list_name)
+#         save_to_folder(df_01, step01_folder, list_name)
+
+#     df_02 = step_02_remove_phones(df_01)
+#     filepath_02 = save_to_folder(df_02, os.path.join(individual_output_folder, "2BSkip"), list_name)
+
+#     df_03 = step_03_dedupe_and_cleanup(df_01, list_name, individual_output_folder)
+#     filepath_03 = save_to_folder(df_03, os.path.join(individual_output_folder, "CC Ready"), list_name)
+
+#     df_04 = step_04_process_phones(pd.read_excel(filepath_03))
+#     filepath_04 = save_to_folder(df_04, os.path.join(individual_output_folder, "SC Ready"), list_name)
+
+#     df_05 = step_05_reshape(pd.read_excel(filepath_04))
+#     filepath_05 = save_to_folder(df_05, os.path.join(individual_output_folder, "GHL Ready"), list_name)
+
+#     # Post-processing tweaks
+#     remove_phone6_from_cc_ready(filepath_03)
+#     remove_type_columns_from_cc_ready(filepath_03)
+
+#     # Reorder No Hit file if it exists
+#     reorder_nohit_file(os.path.join(individual_output_folder, "No Hit", f"{list_name}.xlsx"))
+
+#     # Tracker
+#     no_hit_path = os.path.join(individual_output_folder, "No Hit", f"{list_name}.xlsx")
+
+#     tracker_data = {
+#         "SkipTraced": filepath_01,
+#         "2BSkip": filepath_02,
+#         "CC Ready": filepath_03,
+#         "SC Ready": filepath_04,
+#         "GHL Ready": filepath_05,
+#         "No Hit File": no_hit_path
+#     }
+
+#     tracker_lines = []
+#     for label, path in tracker_data.items():
+#         try:
+#             if os.path.exists(path):
+#                 df_tmp = pd.read_excel(path)
+#                 count = df_tmp["List"].notna().sum() if "List" in df_tmp.columns else len(df_tmp)
+#             else:
+#                 count = 0  # If file missing → 0
+#             tracker_lines.append(f"{label}: {count}")
+#         except Exception as e:
+#             tracker_lines.append(f"{label}: Error reading file - {str(e)}")
+
+#     tracker_path = os.path.join(individual_output_folder, "List Building Records.txt")
+#     with open(tracker_path, "w") as f:
+#         f.write("\n".join(tracker_lines))
+
+#     print("📋 Tracker saved at:", tracker_path)
+
+#     # If keep_outputs specified, remove any outputs NOT listed
+#     if keep_outputs is not None:
+#         # map "No Hit File" label to how user likely sees "No Hit" checkbox
+#         allowed_labels = set(keep_outputs)
+#         # Accept both "No Hit" and "No Hit File" synonyms
+#         if "No Hit" in allowed_labels:
+#             allowed_labels.add("No Hit File")
+#         if "No Hit File" in allowed_labels:
+#             allowed_labels.add("No Hit")
+
+#         for label, path in tracker_data.items():
+#             if label not in allowed_labels:
+#                 try:
+#                     if os.path.exists(path):
+#                         os.remove(path)
+#                         print(f"🗑️ Deleted {label} at {path} (user requested not to keep).")
+#                 except Exception as e:
+#                     print(f"⚠️ Failed to delete {path}: {e}")
+
+#         # Additionally, try to clean empty subfolders (best-effort)
+#         for folder in subfolders:
+#             folder_path = os.path.join(individual_output_folder, folder)
+#             try:
+#                 if os.path.isdir(folder_path) and not os.listdir(folder_path):
+#                     os.rmdir(folder_path)
+#             except Exception:
+#                 pass
+
+#     return [filepath_01, filepath_02, filepath_03, filepath_04, filepath_05, no_hit_path]
+
+# # -------------------------------
+# # PROCESS DIRECTORY
+# # -------------------------------
+# def process_directory(input_folder):
+#     output_folder = os.path.join(input_folder, "Processed")
+#     ensure_folder(output_folder)
+
+#     for filename in os.listdir(input_folder):
+#         if filename.lower().endswith(('.csv', '.xlsx')):
+#             input_path = os.path.join(input_folder, filename)
+#             list_name = os.path.splitext(filename)[0]
+#             print(f"⚡ Processing {filename} ...")
+#             try:
+#                 run_3_phone_number_vacant_lot_pipeline(input_path, list_name, input_folder)  # Pass input_folder as output_folder
+#             except Exception as e:
+#                 print(f"❌ Failed on {filename}: {e}")
+
+# # -------------------------------
+# # CC Ready File Processor
+# # -------------------------------
+# def process_individual_cc_ready_file(file_path):
+#     return remove_type_columns_from_cc_ready(file_path)
+
+# # -------------------------------
+# # Remove Phone6 from CC Ready
+# # -------------------------------
+# def remove_phone6_from_cc_ready(file_path):
+#     try:
+#         df = pd.read_excel(file_path)
+#         if "Phone6" in df.columns:
+#             df = df.drop(columns=["Phone6"], errors="ignore")
+
+#             writer = pd.ExcelWriter(file_path, engine="xlsxwriter")
+#             df.to_excel(writer, sheet_name="Sheet1", index=False)
+
+#             workbook = writer.book
+#             worksheet = writer.sheets["Sheet1"]
+#             no_border_format = workbook.add_format({"border": 0})
+
+#             for col_num, value in enumerate(df.columns.values):
+#                 worksheet.write(0, col_num, value, no_border_format)
+
+#             writer.close()
+#             print(f"✅ Removed Phone6 column from: {file_path}")
+#         return df
+#     except Exception as e:
+#         print(f"❌ Error removing Phone6 from CC Ready file: {str(e)}")
+#         return None
+
+# def reorder_nohit_file(no_hit_path):
+#     """
+#     If No Hit file exists, reorder its columns so that:
+#     Phone1, Type1, ..., Phone6, Type6, Email, List
+#     """
+#     if os.path.exists(no_hit_path):
+#         try:
+#             df = pd.read_excel(no_hit_path)
+
+#             # Define the desired column order
+#             phone_type_cols = []
+#             for i in range(1, 7):
+#                 phone_type_cols.append(f"Phone{i}")
+#                 phone_type_cols.append(f"Type{i}")
+
+#             final_order = phone_type_cols + ["Email", "List"]
+
+#             # Keep only columns that exist in df
+#             ordered_cols = [col for col in final_order if col in df.columns]
+#             remaining_cols = [col for col in df.columns if col not in ordered_cols]
+
+#             df = df[ remaining_cols + ordered_cols]
+
+#             # Overwrite the file with reordered columns
+#             writer = pd.ExcelWriter(no_hit_path, engine="xlsxwriter")
+#             df.to_excel(writer, sheet_name="Sheet1", index=False)
+
+#             workbook = writer.book
+#             worksheet = writer.sheets["Sheet1"]
+#             no_border_format = workbook.add_format({"border": 0})
+
+#             for col_num, value in enumerate(df.columns.values):
+#                 worksheet.write(0, col_num, value, no_border_format)
+
+#             writer.close()
+
+#             print(f"✅ Reordered columns in No Hit file: {no_hit_path}")
+#             return df
+
+#         except Exception as e:
+#             print(f"❌ Error reordering No Hit file: {e}")
+#             return None
+#     else:
+#         print(f"ℹ️ No Hit file not found at {no_hit_path}")
+#         return None
+
+# # -------------------------------
+# # Main
+# # -------------------------------
+# if __name__ == "__main__":
+#     print("Pipeline Script Loaded")
+#     print("Available functions:")
+#     print("- process_directory(input_folder)")
+#     print("- run_3_phone_number_vacant_lot_pipeline(input_path, list_name, output_folder, keep_outputs=None)")
+#     print("- process_individual_cc_ready_file(file_path)")

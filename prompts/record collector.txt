@@ -1,0 +1,463 @@
+I want to add record collect tool new tool in my project
+Project Structure:
+
+main.py 
+utils/record_collector.py 
+
+Features:
+New tool have dashboard
+it will have built in Folder files collector like if I want to collect files from main directory like i have multiple folder in directory and i want to collect specific folder files in main directory with folder name that is being collect like if i want to collect all files have folder name 'GHL Ready' it will nevigate folder in folder means check all folder and find files and reture back to orginal
+
+Predefined folder collectors Names are:
+GHL Ready, SkipTraced, 2BSkip, CC Ready, No Hit, SC Ready,
+and a custom filed which input folder name 
+
+
+For ref. i am mentioning a already built script for it:
+import os
+import shutil
+
+def collect_cc_ready_files():
+    cwd = os.getcwd()
+    target_folder = os.path.join(cwd, "CC Ready")
+
+    # Make target folder if not exists
+    os.makedirs(target_folder, exist_ok=True)
+
+    for root, dirs, files in os.walk(cwd):
+        # If folder name is "CC Ready"
+        if os.path.basename(root) == "CC Ready" and root != target_folder:
+            for file in files:
+                source_file = os.path.join(root, file)
+                dest_file = os.path.join(target_folder, file)
+
+                # If duplicate file name exists, rename by adding suffix
+                if os.path.exists(dest_file):
+                    base, ext = os.path.splitext(file)
+                    i = 1
+                    while os.path.exists(os.path.join(target_folder, f"{base}_{i}{ext}")):
+                        i += 1
+                    dest_file = os.path.join(target_folder, f"{base}_{i}{ext}")
+
+                shutil.copy2(source_file, dest_file)
+                print(f"✅ Copied: {source_file} -> {dest_file}")
+
+    print(f"\n🎯 All files collected into: {target_folder}")
+
+if __name__ == "__main__":
+    collect_cc_ready_files()
+
+
+
+
+
+main.py file is:
+
+import os
+import threading
+import tkinter as tk
+from tkinter import filedialog, messagebox, simpledialog
+
+# Third-party UI theme
+import ttkbootstrap as tb
+from ttkbootstrap.constants import *
+
+from ui.ui_main import HitrotechUI
+
+# -----------------------------
+# Helpers: Safe/late imports of project modules (keeps this file standalone)
+# -----------------------------
+
+def _try_import(path, name):
+    """Import a symbol (function/module) from a dotted path safely.
+    path like "utils.converters", name like "csv_to_excel".
+    Returns callable/module or raises helpful messagebox at call-time.
+    """
+    try:
+        module = __import__(path, fromlist=[name])
+        return getattr(module, name)
+    except Exception as e:
+        def _missing(*args, **kwargs):
+            messagebox.showerror(
+                "Missing dependency",
+                f"Could not import {name} from {path}.\n\nError: {e}\n\n"
+                "Make sure your project files are available or adjust TOOL_DEFS to your setup."
+            )
+        return _missing
+
+# Lazily resolved callables (evaluated inside actions)
+
+def get_utils():
+    return {
+        'csv_to_excel': _try_import('utils.converters', 'csv_to_excel'),
+        'excel_to_csv': _try_import('utils.converters', 'excel_to_csv'),
+        'merge_files': _try_import('utils.merger', 'merge_files'),
+        'separate_by_column': _try_import('utils.separator', 'separate_by_column'),
+        'run_step05_pipeline': _try_import('utils.ghl_compiler', 'run_step05_pipeline'),
+        'run_column_mapper': _try_import('utils.column_mapper', 'run_column_mapper'),
+        'run_script1': _try_import('utils.readRecords_campaignReady_driveReady', 'run_script1'),
+        'run_script2': _try_import('utils.readRecords_campaignReady_driveReady', 'run_script2'),
+        'run_script3': _try_import('utils.readRecords_campaignReady_driveReady', 'run_script3'),
+        'process_directory': _try_import('pipeline.listbuilding_pipeline', 'process_directory'),
+        'run_pipeline': _try_import('pipeline.listbuilding_pipeline', 'run_pipeline'),
+        'process_aae_directory': _try_import('pipeline.AAE_3_phone_lsb', 'process_aae_directory'),
+        'run_aae_pipeline': _try_import('pipeline.AAE_3_phone_lsb', 'run_aae_pipeline'),
+        'run_column_adder': _try_import('utils.gen_coloumns_adder', 'run_column_adder'),
+    }
+
+# -----------------------------
+# Application logic
+# -----------------------------
+class HitrotechApp:
+    def __init__(self, root):
+        self.root = root
+        self.utils = get_utils()
+        self.ui = None
+        self.setup_app()
+        
+    def setup_app(self):
+        # Create UI with tool definitions and action handlers
+        self.ui = HitrotechUI(self.root, TOOL_DEFS, self.get_action_handlers())
+        
+    def get_action_handlers(self):
+        return {
+            'csv2xlsx': self.action_csv_to_excel,
+            'xlsx2csv': self.action_excel_to_csv,
+            'merge': self.action_merge,
+            'separator': self.action_separate,
+            'ghl': self.action_ghl,
+            'mapper': self.action_column_mapper,
+            'records': self.action_records_extractor,
+            'pipeline': self.action_pipeline_bulk,
+            'aae': self.action_aae_3_phone_lsb,
+            'coladder': self.action_column_adder,
+        }
+    
+    def run_with_loader(self, func, *args, **kwargs):
+        popup, prog = self.ui.show_loading()
+
+        def task():
+            try:
+                func(*args, **kwargs)
+            finally:
+                self.root.after(0, popup.destroy)
+
+        threading.Thread(target=task, daemon=True).start()
+
+    # -----------------------------
+    # Actions (each is self-contained and resilient to missing project files)
+    # -----------------------------
+
+    def action_csv_to_excel(self):
+        files = self.ui.select_files([("CSV Files", "*.csv")])
+        if not files:
+            return
+        out = self.ui.select_folder()
+        if not out:
+            return
+
+        def work():
+            ok = 0
+            for f in files:
+                self.utils['csv_to_excel'](f, out)
+                ok += 1
+            self.ui.show_info("✅ Success", f"Converted {ok} CSV file(s) to Excel.")
+
+        self.run_with_loader(work)
+
+    def action_excel_to_csv(self):
+        files = self.ui.select_files([("Excel Files", "*.xlsx")])
+        if not files:
+            return
+        out = os.path.join(os.getcwd(), "output", "csv")
+        os.makedirs(out, exist_ok=True)
+
+        def work():
+            ok = 0
+            for f in files:
+                self.utils['excel_to_csv'](f, out)
+                ok += 1
+            self.ui.show_info("✅ Success", f"Converted {ok} Excel file(s) to CSV (folder: {out}).")
+
+        self.run_with_loader(work)
+
+    def action_merge(self):
+        files = self.ui.select_files([("Excel/CSV Files", "*.xlsx *.csv")])
+        if not files:
+            return
+
+        def work():
+            self.utils['merge_files'](files)
+            self.ui.show_info("✅ Success", "Merged files into merged_output.xlsx")
+
+        self.run_with_loader(work)
+
+    def action_separate(self):
+        file = filedialog.askopenfilename(filetypes=[("Excel/CSV Files", "*.xlsx *.csv")])
+        if not file:
+            return
+        col = self.ui.ask_string("Column Name", "Enter column to split by:")
+        if not col:
+            return
+
+        def work():
+            self.utils['separate_by_column'](file, col)
+            self.ui.show_info("✅ Success", f"Separated files by {col}")
+
+        self.run_with_loader(work)
+
+    def action_column_adder(self):
+        # Call the function from gen_coloumns_adder
+        self.utils['run_column_adder'](self.root)
+
+    def action_ghl(self):
+        files = self.ui.select_files([("Excel/CSV Files", "*.xlsx *.csv")])
+        if not files:
+            return
+
+        def work():
+            for f in files:
+                self.utils['run_step05_pipeline'](f)
+            self.ui.show_info("✅ Success", "GHL Ready files created")
+
+        self.run_with_loader(work)
+
+    def action_column_mapper(self):
+        file = filedialog.askopenfilename(filetypes=[("Excel/CSV Files", "*.xlsx *.csv")])
+        if file:
+            self.utils['run_column_mapper'](file)
+
+    # ---- Records Extractor (subwindow)
+
+    def action_records_extractor(self):
+        win = tb.Toplevel(self.root)
+        win.title("Records Extractor Tool")
+        win.geometry("520x420")
+        win.configure(bg="#fff3e0")
+
+        tb.Label(win, text="Select Folder to Process", font=("Segoe UI", 12, "bold"), background="#fff3e0").pack(pady=10)
+
+        path_var = tk.StringVar()
+
+        def browse_folder():
+            folder = filedialog.askdirectory()
+            if folder:
+                path_var.set(folder)
+
+        frame_path = tb.Frame(win)
+        frame_path.pack(pady=5)
+        tb.Entry(frame_path, textvariable=path_var, width=42).pack(side="left", padx=5)
+        tb.Button(frame_path, text="Browse", bootstyle="secondary", command=browse_folder).pack(side="left")
+
+        tb.Label(win, text="Select Operation:", font=("Segoe UI", 10), background="#fff3e0").pack(pady=10)
+
+        script_var = tk.StringVar(value="run_all")
+        options_frame = tb.Frame(win, bootstyle="light")
+        options_frame.pack(pady=5)
+
+        tb.Radiobutton(options_frame, text="Run All Operations", variable=script_var, value="run_all", bootstyle="primary-toolbutton").pack(anchor="w", pady=5)
+        tb.Radiobutton(options_frame, text="Extract Records from TXT/CSV", variable=script_var, value="script1", bootstyle="primary-toolbutton").pack(anchor="w", pady=5)
+        tb.Radiobutton(options_frame, text="Collect GHL Ready Files & Create Zip", variable=script_var, value="script2", bootstyle="primary-toolbutton").pack(anchor="w", pady=5)
+        tb.Radiobutton(options_frame, text="Organize Folders Structure", variable=script_var, value="script3", bootstyle="primary-toolbutton").pack(anchor="w", pady=5)
+
+        def run_selected_script():
+            folder = path_var.get().strip()
+            if not folder or not os.path.isdir(folder):
+                self.ui.show_error("❌ Error", "Please select a valid folder path")
+                return
+
+            def work():
+                original_dir = os.getcwd()
+                os.chdir(folder)
+                try:
+                    if script_var.get() == "script1":
+                        self.utils['run_script1']()
+                        self.ui.show_info("✅ Success", "Records extracted successfully!")
+                    elif script_var.get() == "script2":
+                        self.utils['run_script2']()
+                        self.ui.show_info("✅ Success", "GHL Ready files collected and zip created!")
+                    elif script_var.get() == "script3":
+                        self.utils['run_script3']()
+                        self.ui.show_info("✅ Success", "Folders organized successfully!")
+                    else:
+                        self.utils['run_script1'](); self.utils['run_script2'](); self.utils['run_script3']()
+                        self.ui.show_info("✅ Success", "All operations completed successfully!")
+                except Exception as e:
+                    self.ui.show_error("❌ Error", f"An error occurred: {e}")
+                finally:
+                    os.chdir(original_dir)
+
+            self.run_with_loader(work)
+
+        tb.Button(win, text="Run Selected Operation", bootstyle="success", command=run_selected_script, width=26).pack(pady=16)
+
+    # ---- Pipeline (bulk) subwindow
+
+    def action_pipeline_bulk(self):
+        win = tb.Toplevel(self.root)
+        win.title("Pipeline ListBuilding Bulk")
+        win.geometry("520x300")
+        win.configure(bg="#fff3e0")
+
+        tb.Label(win, text="Select Input Folder", font=("Segoe UI", 12, "bold"), background="#fff3e0").pack(pady=10)
+
+        path_var = tk.StringVar()
+
+        def browse_folder():
+            folder = filedialog.askdirectory()
+            if folder:
+                path_var.set(folder)
+
+        frame_path = tb.Frame(win)
+        frame_path.pack(pady=5)
+        tb.Entry(frame_path, textvariable=path_var, width=42).pack(side="left", padx=5)
+        tb.Button(frame_path, text="Browse", bootstyle="secondary", command=browse_folder).pack(side="left")
+
+        step05_var = tk.BooleanVar(value=True)
+        tb.Checkbutton(win, text="Include Step05 (GHL Ready)", variable=step05_var, bootstyle="round-toggle").pack(pady=14)
+
+        def run_bulk():
+            folder = path_var.get().strip()
+            if not folder or not os.path.isdir(folder):
+                self.ui.show_error("❌ Error", "Please select a valid folder path")
+                return
+
+            def work():
+                if not step05_var.get():
+                    import importlib
+                    pl = importlib.import_module('pipeline.listbuilding_pipeline')
+                    orig = getattr(pl, 'step_05_reshape', lambda df: df)
+                    setattr(pl, 'step_05_reshape', lambda df: df)
+                    self.utils['process_directory'](folder)
+                    setattr(pl, 'step_05_reshape', orig)
+                else:
+                    self.utils['process_directory'](folder)
+                self.ui.show_info("✅ Done", "Pipeline processing complete.")
+
+            self.run_with_loader(work)
+
+        tb.Button(win, text="Run Pipeline", bootstyle="success", command=run_bulk, width=20).pack(pady=12)
+
+    # ---- AAE 3 Phone LSB subwindow
+
+    def action_aae_3_phone_lsb(self):
+        win = tb.Toplevel(self.root)
+        win.title("AAE 3 Phone LSB")
+        win.geometry("520x290")
+        win.configure(bg="#fff3e0")
+
+        tb.Label(win, text="Select Input Folder", font=("Segoe UI", 12, "bold"), background="#fff3e0").pack(pady=10)
+
+        path_var = tk.StringVar()
+
+        def browse_folder():
+            folder = filedialog.askdirectory()
+            if folder:
+                path_var.set(folder)
+
+        frame_path = tb.Frame(win)
+        frame_path.pack(pady=5)
+        tb.Entry(frame_path, textvariable=path_var, width=42).pack(side="left", padx=5)
+        tb.Button(frame_path, text="Browse", bootstyle="secondary", command=browse_folder).pack(side="left")
+
+        step01_var = tk.BooleanVar(value=False)
+        tb.Checkbutton(win, text="Process Step01 Files (Skip Step01 processing)", variable=step01_var, bootstyle="round-toggle").pack(pady=14)
+
+        def run_aae():
+            folder = path_var.get().strip()
+            if not folder or not os.path.isdir(folder):
+                self.ui.show_error("❌ Error", "Please select a valid folder path")
+                return
+
+            def work():
+                self.utils['process_aae_directory'](folder, process_step01_files=step01_var.get())
+                self.ui.show_info("✅ Done", "AAE 3 Phone LSB processing complete.")
+
+            self.run_with_loader(work)
+
+        tb.Button(win, text="Run AAE 3 Phone LSB", bootstyle="success", command=run_aae, width=22).pack(pady=12)
+
+
+# -----------------------------
+# Tool definitions (add here; UI updates automatically)
+# -----------------------------
+TOOL_DEFS = [
+    {
+        'key': 'csv2xlsx',
+        'title': 'CSV → Excel Converter',
+        'desc': 'Convert one or more CSV files into XLSX format in a chosen folder.',
+        'icon': '📄',
+        'action_text': 'Convert',
+    },
+    {
+        'key': 'xlsx2csv',
+        'title': 'Excel → CSV Converter',
+        'desc': 'Export Excel workbooks as CSV files into an automatic output folder.',
+        'icon': '📤',
+        'action_text': 'Export',
+    },
+    {
+        'key': 'merge',
+        'title': 'Merge CSV/Excel Files',
+        'desc': 'Combine multiple CSV/XLSX files into a single merged workbook.',
+        'icon': '🧩',
+        'action_text': 'Merge',
+    },
+    {
+        'key': 'separator',
+        'title': 'File Separator (by Column)',
+        'desc': 'Split a file into multiple files based on a column\'s unique values.',
+        'icon': '✂️',
+        'action_text': 'Separate',
+    },
+    {
+        'key': 'ghl',
+        'title': 'GHL Ready Compiler',
+        'desc': 'Run Step05 pipeline to create GHL Ready files from your inputs.',
+        'icon': '⚙️',
+        'action_text': 'Compile',
+    },
+    {
+        'key': 'mapper',
+        'title': 'Column Mapper Tool',
+        'desc': 'Open the interactive mapper to align columns to your standard.',
+        'icon': '🗺️',
+        'action_text': 'Open',
+    },
+    {
+        'key': 'records',
+        'title': 'Records Extractor Tool',
+        'desc': 'Extract records, collect GHL files into zip, or organize folders.',
+        'icon': '🔎',
+        'action_text': 'Launch',
+    },
+    {
+        'key': 'pipeline',
+        'title': 'MCHB MPV / 6 Phones LSB',
+        'desc': 'Bulk list-building pipeline with optional Step05 reshaping.',
+        'icon': '📦',
+        'action_text': 'Run',
+    },
+    {
+        'key': 'aae',
+        'title': 'AAE 3 Phone LSB',
+        'desc': 'Process AAE list-building with toggle for Step01 handling.',
+        'icon': '📱',
+        'action_text': 'Run',
+    },
+    {
+        'key': 'coladder',
+        'title': 'Column Adder in Output Folder',
+        'desc': 'Map master columns to folder files and inject new columns with data.',
+        'icon': '➕',
+        'action_text': 'Open',
+    },
+]
+
+# -----------------------------
+# Run app
+# -----------------------------
+if __name__ == "__main__":
+    root = tb.Window(themename="cosmo")
+    app = HitrotechApp(root)
+    root.mainloop()

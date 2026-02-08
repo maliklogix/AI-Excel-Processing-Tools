@@ -1,0 +1,76 @@
+Want to add new tool in main03.py:
+Tool Name is : Files Combinations
+
+it's Folder/Files is:
+utils/combinations/files_combinations.py
+
+Functions:
+Tool will accpet a csv or excel file as input,
+next it has a dashboard in which it shows all columns 
+form the input file in a Rows to Col form in Left Side:
+It will allow to choice One Col
+, then next things is it ask for combinations from that files means that if a file is 50K records and we want 10K or less records file from master file, next i want 15K file and so One menas that it will have input that what records you want and it will extract records and make sure it will choice those unique records which has combinations less than or equal to enter input,
+
+Next it will start processing using Button name Start Combinating
+,
+next it will create a folder name 'Processed'
+, 
+in that new folder create a foldre from input records name let suppose if if two input filed like 5K or 15K it will make 3 folder one is 5K, next is 15K, and one is Reaming records name folder 
+next it will create a txt file with each folder which contain records of newly created file
+and many more things in the dashboard, 
+
+Let try to put things and funcitons in file_combinatios.py  with workig
+
+So main03.py file is:
+
+
+import os
+import tkinter as tk
+import ttkbootstrap as tb
+from tkinter import filedialog, messagebox
+
+from main.main02 import ExtendedApp, TOOL_DEFS # Import base app + tools and existing tool definitions
+
+# -----------------------------
+# Further Extended Application
+# -----------------------------
+class FurtherExtendedApp(ExtendedApp):
+    def __init__(self, root):
+        super().__init__(root)
+
+    # ---- Dummy Tool
+    def action_dummy_tool(self):
+        win = tb.Toplevel(self.root)
+        win.title("Dummy Tool")
+        win.geometry("400x250")
+        
+        main_frame = tb.Frame(win)
+        main_frame.pack(fill="both", expand=True, padx=20, pady=20)
+
+        tb.Label(main_frame, text="This is a Dummy Tool!", font=("Segoe UI", 14, "bold")).pack(pady=20)
+        tb.Label(main_frame, text="It doesn't do much, but it shows how to extend the app.").pack(pady=10)
+
+        def show_message():
+            messagebox.showinfo("Dummy Action", "Dummy button pressed! Nothing really happens.")
+
+        tb.Button(main_frame, text="Perform Dummy Action", bootstyle="primary", command=show_message).pack(pady=20)
+
+    # ---- Extend handlers further
+    def get_action_handlers(self):
+        handlers = super().get_action_handlers()
+        handlers['dummytool'] = self.action_dummy_tool
+        return handlers
+
+# -----------------------------
+# Add tool definition for Dummy Tool
+# -----------------------------
+TOOL_DEFS.append({
+    'key': 'dummytool',
+    'title': 'Dummy Tool',
+    'desc': 'A placeholder tool to demonstrate further extensibility.',
+    'icon': '💡',
+    'action_text': 'Open',
+})
+
+
+Now make Both Updated file file_combinations and main03.py 
