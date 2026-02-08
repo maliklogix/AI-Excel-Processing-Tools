@@ -1,110 +1,28 @@
-AI-Excel-Processing-Tools (Hitrotech Data Tools)
+# AI-Excel-Processing-Tools (Data Tools)
 
-A powerful, GUI-based toolkit for high-volume CSV and Excel data processing. Designed specifically for real estate investors, marketers, and data analysts to automate complex list-building and data-cleaning workflows.
+A powerful, GUI-based toolkit designed for high-volume CSV and Excel data processing. Tailored specifically for real estate investors, marketers, and data analysts, this tool helps automate complex list-building and data-cleaning workflows.
 
-🚀 Key Features
+## 🚀 Key Features
 
-•
-Comprehensive Pipelines: Automated workflows for Vacant Lot, Resident Data, and AAE lists.
+- **Comprehensive Pipelines**: Automated workflows for handling Vacant Lot, Resident Data, and AAE lists.
+  
+- **Smart Data Manipulation**:
+  - **Merge & Subtract**: Combine multiple datasets or remove overlaps using composite key matching.
+  - **Smart Separator**: Split large files by unique column values (e.g., County, Zip).
+  - **Column Mapper & Adder**: An interactive UI for aligning data to standard schemas and bulk-injecting new columns.
 
-•
-Smart Data Manipulation:
+- **CRM Ready Outputs**: Automatically generate CSV files formatted for use with GoHighLevel (GHL) and other CRM platforms.
 
-•
-Merge & Subtract: Combine multiple datasets or remove overlaps with composite key matching.
+- **Record Collection**: Automatically gather processed files from nested directories into a central location.
 
-•
-Smart Separator: Split large files by unique column values (e.g., County, Zip).
+- **Format Conversion**: Type-safe conversion between CSV and XLSX formats.
 
-•
-Column Mapper & Adder: Interactive UI for aligning data to standard schemas and bulk-injecting columns.
+---
 
+## 🛠️ Installation
 
+### 1. Clone the repository:
 
-•
-CRM Ready Outputs: Generate "GHL Ready" CSVs formatted perfectly for GoHighLevel and other CRM platforms.
-
-•
-Record Collection: Automatically gather processed files from nested directories into one central location.
-
-•
-Format Conversion: Fast, type-safe conversion between CSV and XLSX.
-
-🛠️ Installation
-
-1.
-Clone the repository:
-
-Bash
-
-
+```bash
 git clone https://github.com/maliklogix/AI-Excel-Processing-Tools.git
 cd AI-Excel-Processing-Tools
-
-
-
-
-
-2.
-Install dependencies:
-
-Bash
-
-
-pip install pandas ttkbootstrap openpyxl xlsxwriter
-
-
-
-
-
-3.
-Run the application:
-
-Bash
-
-
-python run.py
-
-
-
-
-
-📂 Project Structure
-
-•
-run.py: Application entry point.
-
-•
-main/: Core application logic and dashboard definitions.
-
-•
-pipeline/: Specialized workflows for real estate data.
-
-•
-utils/: Modular tools for merging, converting, and cleaning.
-
-•
-ui/: GUI implementation and theme management.
-
-📖 Usage
-
-1.
-Launch the app via run.py.
-
-2.
-Choose a tool from the dashboard (e.g., File Merger, Record Subtractor, or Bulk List Builder ).
-
-3.
-Follow the interactive prompts to select your input files/folders and output destinations.
-
-4.
-Monitor progress via the built-in loading bars and status updates.
-
-🤝 Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-📄 License
-
-This project is licensed under the MIT License.
-
