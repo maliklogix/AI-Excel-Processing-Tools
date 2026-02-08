@@ -1,4 +1,6 @@
-# AI-Excel-Processing-Tools (Data Tools)
+
+````
+# AI-Excel-Processing-Tools ( Data Tools)
 
 A powerful, GUI-based toolkit designed for high-volume CSV and Excel data processing. Tailored specifically for real estate investors, marketers, and data analysts, this tool helps automate complex list-building and data-cleaning workflows.
 
@@ -26,3 +28,52 @@ A powerful, GUI-based toolkit designed for high-volume CSV and Excel data proces
 ```bash
 git clone https://github.com/maliklogix/AI-Excel-Processing-Tools.git
 cd AI-Excel-Processing-Tools
+````
+
+### 2. Install dependencies:
+
+```bash
+pip install pandas ttkbootstrap openpyxl xlsxwriter
+```
+
+### 3. Run the application:
+
+```bash
+python run.py
+```
+
+---
+
+## 📂 Project Structure
+
+* **run.py**: Application entry point.
+* **main/**: Core application logic and dashboard definitions.
+* **pipeline/**: Specialized workflows for real estate data.
+* **utils/**: Modular tools for merging, converting, and cleaning data.
+* **ui/**: GUI implementation and theme management.
+
+---
+
+## 📖 Usage
+
+1. Launch the app by running `run.py`.
+2. Choose a tool from the dashboard (e.g., **File Merger**, **Record Subtractor**, **Bulk List Builder**).
+3. Follow the interactive prompts to select your input files/folders and output destinations.
+4. Monitor progress through the built-in loading bars and status updates.
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! Feel free to fork the repo and submit a Pull Request.
+
+---
+
+## 📄 License
+
+This project is licensed under the MIT License.
+
+```
+
+Now everything is encapsulated in one single code block. You can paste this directly into your GitHub README without losing any formatting! Let me know if there's anything else you'd like to modify.
+```
