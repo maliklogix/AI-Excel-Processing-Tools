@@ -1,58 +1,110 @@
-AI-Excel-Processing-Tools: Comprehensive Project Description
-Overview
-AI-Excel-Processing-Tools (internally referred to as Hitrotech Data Tools) is a robust, Python-based desktop application designed for high-volume data manipulation, specifically tailored for real estate lead generation and marketing workflows. Built with a modern ttkbootstrap interface, the toolkit provides a centralized dashboard for processing large CSV and Excel datasets through automated pipelines.
+AI-Excel-Processing-Tools (Hitrotech Data Tools)
 
-The project is structured as an extensible framework, with a core application (main.py) that has been progressively enhanced through main02.py and main03.py. It automates the "list building" process—standardizing raw data, removing duplicates, enriching records with phone numbers, and formatting outputs for CRM platforms like GoHighLevel (GHL).
+A powerful, GUI-based toolkit for high-volume CSV and Excel data processing. Designed specifically for real estate investors, marketers, and data analysts to automate complex list-building and data-cleaning workflows.
 
+🚀 Key Features
 
-Key Features
-1. Advanced Data Pipelines
-The application includes specialized pipelines for different data types:
+•
+Comprehensive Pipelines: Automated workflows for Vacant Lot, Resident Data, and AAE lists.
 
-Bulk List Builder: A comprehensive pipeline for processing MCHB MPV and 6-phone vacant lot lists.
-AAE List Builder: Specifically designed for AAE lists, featuring automated 3-phone enrichment and Step01 toggle capabilities.
-Resident Data Pipeline: Processes resident-specific data with support for up to 6 phone numbers.
-Vacant Lot Pipeline: Generates vacant lot lists with detailed property and mailing information.
-2. Core Utility Tools
-Smart Separator: Splits large files into smaller datasets based on unique column values (e.g., separating by County or Zip Code).
-Advanced File Merger: Combines multiple CSV or Excel files into a single unified workbook with key column alignment and record summaries.
-Record Subtractor: Compares two datasets and removes overlapping records based on composite keys, essential for avoiding duplicate marketing efforts.
-Column Mapper & Adder: Features an interactive UI to map source columns to standard schemas and inject new data from master files into target folders recursively.
-Record Collector: Recursively searches through directory structures to collect specific folder types (e.g., "GHL Ready", "SkipTraced") into a central repository.
-3. Format Conversion & Standardization
-Bi-directional Conversion: Seamlessly convert between CSV and Excel (XLSX) formats while preserving data types like ZIP codes and phone numbers.
-GHL Compiler: Reshapes data into "GHL Ready" format, expanding multiple phone numbers into individual rows to comply with CRM import requirements.
-Standardization: Automatically applies Pascal case to addresses and cities, normalizes phone formats, and handles "No Hit" records by separating them into dedicated files.
+•
+Smart Data Manipulation:
+
+•
+Merge & Subtract: Combine multiple datasets or remove overlaps with composite key matching.
+
+•
+Smart Separator: Split large files by unique column values (e.g., County, Zip).
+
+•
+Column Mapper & Adder: Interactive UI for aligning data to standard schemas and bulk-injecting columns.
 
 
-Technical Architecture
-Project Structure
-Component
-Description
-run.py
-The main entry point that initializes the application.
-main/
-Contains the core application logic across three versions (main.py, main02.py, main03.py).
-ui/
-Implements the graphical interface using tkinter and ttkbootstrap.
-utils/
-A collection of modular scripts for specific tasks like merging, converting, and subtracting.
-pipeline/
-High-level scripts that coordinate multiple utilities to perform complex workflows.
-prompts/
-Documentation of the development process and logic used to build the tools.
 
-Technologies Used
-Language: Python 3.x
-GUI Framework: tkinter with ttkbootstrap (for modern, responsive themes).
-Data Processing: pandas (for high-performance data manipulation).
-File Handling: openpyxl and xlsxwriter (for advanced Excel operations).
-Concurrency: threading (to keep the UI responsive during heavy processing).
+•
+CRM Ready Outputs: Generate "GHL Ready" CSVs formatted perfectly for GoHighLevel and other CRM platforms.
+
+•
+Record Collection: Automatically gather processed files from nested directories into one central location.
+
+•
+Format Conversion: Fast, type-safe conversion between CSV and XLSX.
+
+🛠️ Installation
+
+1.
+Clone the repository:
+
+Bash
 
 
-Use Cases
-Real Estate Marketing: Preparing skip-traced lists for cold calling or SMS campaigns.
-Data Cleaning: Standardizing inconsistent data from multiple lead sources.
-CRM Preparation: Formatting datasets specifically for GoHighLevel or similar platforms.
-Database Management: Merging and de-duplicating large property record databases.
+git clone https://github.com/maliklogix/AI-Excel-Processing-Tools.git
+cd AI-Excel-Processing-Tools
+
+
+
+
+
+2.
+Install dependencies:
+
+Bash
+
+
+pip install pandas ttkbootstrap openpyxl xlsxwriter
+
+
+
+
+
+3.
+Run the application:
+
+Bash
+
+
+python run.py
+
+
+
+
+
+📂 Project Structure
+
+•
+run.py: Application entry point.
+
+•
+main/: Core application logic and dashboard definitions.
+
+•
+pipeline/: Specialized workflows for real estate data.
+
+•
+utils/: Modular tools for merging, converting, and cleaning.
+
+•
+ui/: GUI implementation and theme management.
+
+📖 Usage
+
+1.
+Launch the app via run.py.
+
+2.
+Choose a tool from the dashboard (e.g., File Merger, Record Subtractor, or Bulk List Builder ).
+
+3.
+Follow the interactive prompts to select your input files/folders and output destinations.
+
+4.
+Monitor progress via the built-in loading bars and status updates.
+
+🤝 Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+📄 License
+
+This project is licensed under the MIT License.
 
