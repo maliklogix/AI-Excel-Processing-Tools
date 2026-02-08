@@ -1,4 +1,4 @@
-# AI-Excel-Processing-Tools (Hitrotech Data Tools)
+# AI-Excel-Processing-Tools (Data Tools)
 
 ## 📌 Overview
 
